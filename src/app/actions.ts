@@ -14,10 +14,10 @@ export async function rateLimit(key: string) {
     throw new Error("Could not get IP address");
   }
   const identifier = `${ip}_${key}`;
+  console.log("identifier : ", identifier);
   try {
     await rateLimiter.consume(identifier);
-  } catch (error) {
-    console.log(error);
+  } catch {
     throw new Error("Too many requests. Try again later.");
   }
 }
