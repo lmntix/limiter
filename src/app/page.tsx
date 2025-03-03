@@ -18,7 +18,7 @@ export default function RateLimiterTest() {
       setIsError(false);
     } catch (err) {
       if (err instanceof Error) {
-        setMessage(err.message);
+        setMessage("err.message");
       } else {
         setMessage("An unknown error occurred");
       }
