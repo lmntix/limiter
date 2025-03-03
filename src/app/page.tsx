@@ -30,6 +30,7 @@ export default function RateLimiterTest() {
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
+      Limiter Test
       <div className="flex flex-col items-center gap-4">
         <Button onClick={handleClick} disabled={loading}>
           {loading ? "Processing..." : "Test Rate Limit"}
