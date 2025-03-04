@@ -1,114 +1,52 @@
-/**
- * Custom secondary storage implementation for Better Auth
- * This implementation uses an in-memory Map with TTL support
- */
+import { SecondaryStorage } from "better-auth";
 
-import { logger } from "@/lib/logger";
-
-interface StorageItem {
+// Type-safe in-memory storage
+type StorageRecord = {
   value: string;
-  expiry: number | null;
-}
+  expiresAt: number | null;
+};
 
-// In-memory storage with TTL support
-class MemoryStore {
-  private store: Map<string, StorageItem> = new Map();
-  
-  constructor() {
-    // Clean up expired items periodically
-    setInterval(() => this.cleanup(), 60000); // Run cleanup every minute
-  }
-
-  private cleanup() {
-    const now = Date.now();
-    let cleanedCount = 0;
-    
-    for (const [key, item] of this.store.entries()) {
-      if (item.expiry !== null && item.expiry < now) {
-        this.store.delete(key);
-        cleanedCount++;
-      }
-    }
-    
-    if (cleanedCount > 0) {
-      logger.debug(`[RateLimit] Cleanup removed ${cleanedCount} expired items`);
-    }
-  }
+export class InMemoryStorage implements SecondaryStorage {
+  private storage: Map<string, StorageRecord> = new Map();
 
   async get(key: string): Promise<string | null> {
-    const item = this.store.get(key);
-    
-    if (!item) {
-      logger.debug(`[RateLimit] Cache miss for key: ${key}`);
+    console.log(`[InMemoryStorage] Attempting to get key: ${key}`);
+    const record = this.storage.get(key);
+
+    if (!record) {
+      console.log(`[InMemoryStorage] Key not found: ${key}`);
       return null;
     }
-    
-    // Check if the item has expired
-    if (item.expiry !== null && item.expiry < Date.now()) {
-      logger.debug(`[RateLimit] Key expired: ${key}`);
-      this.store.delete(key);
+
+    // Check if the record has expired
+    if (record.expiresAt && record.expiresAt < Date.now()) {
+      console.log(`[InMemoryStorage] Key expired: ${key}`);
+      this.storage.delete(key);
       return null;
     }
-    
-    // Try to parse the value as JSON to extract rate limit information
-    try {
-      const parsedValue = JSON.parse(item.value);
-      if (parsedValue && typeof parsedValue === 'object' && 'count' in parsedValue) {
-        // This appears to be a rate limit counter
-        logger.debug(
-          `[RateLimit] Cache hit for key: ${key}, ` +
-          `Current attempts: ${parsedValue.count}`
-        );
-      } else {
-        logger.debug(`[RateLimit] Cache hit for key: ${key}`);
-      }
-    } catch (e) {
-      // Not JSON or couldn't parse
-      logger.debug(`[RateLimit] Cache hit for key: ${key}`);
-    }
-    
-    return item.value;
+
+    console.log(`[InMemoryStorage] Successfully retrieved key: ${key}`);
+    return record.value;
   }
 
   async set(key: string, value: string, ttl?: number): Promise<void> {
-    const expiry = ttl ? Date.now() + (ttl * 1000) : null;
-    this.store.set(key, { value, expiry });
-    
-    // Try to parse the value as JSON to extract rate limit information
-    try {
-      const parsedValue = JSON.parse(value);
-      if (parsedValue && typeof parsedValue === 'object' && 'count' in parsedValue) {
-        // This appears to be a rate limit counter
-        logger.debug(
-          `[RateLimit] Updated counter for key: ${key}, ` +
-          `Attempts: ${parsedValue.count}, ` +
-          `TTL: ${ttl || 'none'}`
-        );
-      } else {
-        logger.debug(`[RateLimit] Set key: ${key}, value: ${value}, TTL: ${ttl || 'none'}`);
-      }
-    } catch (e) {
-      // Not JSON or couldn't parse
-      logger.debug(`[RateLimit] Set key: ${key}, value: ${value}, TTL: ${ttl || 'none'}`);
-    }
-    
-    if (ttl) {
-      logger.debug(`[RateLimit] Key ${key} will expire at: ${new Date(expiry!).toISOString()}`);
-    }
+    const expiresAt = ttl ? Date.now() + ttl * 1000 : null;
+    this.storage.set(key, { value, expiresAt });
+    console.log(`[InMemoryStorage] Set key: ${key}, TTL: ${ttl || "none"}`);
   }
 
   async delete(key: string): Promise<void> {
-    this.store.delete(key);
-    logger.debug(`[RateLimit] Deleted key: ${key}`);
+    const deleted = this.storage.delete(key);
+    console.log(`[InMemoryStorage] Deleted key: ${key}, Success: ${deleted}`);
+  }
+
+  // Optional: Add a method to log the current state of the storage
+  logStorageState(): void {
+    console.log("[InMemoryStorage] Current storage state:");
+    this.storage.forEach((record, key) => {
+      console.log(
+        `  Key: ${key}, Value: ${record.value}, Expires: ${record.expiresAt ? new Date(record.expiresAt).toISOString() : "never"}`
+      );
+    });
   }
 }
-
-// Create a singleton instance
-const memoryStore = new MemoryStore();
-
-// Export the secondary storage implementation
-export const secondaryStorage = {
-  get: async (key: string) => memoryStore.get(key),
-  set: async (key: string, value: string, ttl?: number) => memoryStore.set(key, value, ttl),
-  delete: async (key: string) => memoryStore.delete(key)
-};

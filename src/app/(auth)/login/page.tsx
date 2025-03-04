@@ -6,7 +6,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useState } from "react";
 import { authClient } from "@/lib/auth/auth-client";
-import loginRateLimiter from "./rate-limiter";
 import {
   Form,
   FormControl,
@@ -29,7 +28,6 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { getClientIp } from "./actions";
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -51,52 +49,26 @@ export default function Login() {
   });
 
   const handleCredentialsSignIn = async (values: LoginFormValues) => {
-    // Get client IP dynamically from headers using server action
-    const clientIp = await getClientIp();
-
-    // Check rate limit before attempting to sign in
-    const rateLimitCheck = loginRateLimiter.checkRateLimit(
-      clientIp,
-      values.email
-    );
-
-    if (!rateLimitCheck.allowed) {
-      toast.error(rateLimitCheck.message);
-      return;
-    }
-
-    try {
-      await authClient.signIn.email(
-        {
-          email: values.email,
-          password: values.password,
+    await authClient.signIn.email(
+      {
+        email: values.email,
+        password: values.password,
+      },
+      {
+        onRequest: () => {
+          setPendingCredentials(true);
         },
-        {
-          onRequest: () => {
-            setPendingCredentials(true);
-          },
-          onSuccess: async () => {
-            // Reset rate limiter on successful login
-            loginRateLimiter.resetOnSuccess(clientIp, values.email);
-            router.push(Paths.LandingPage);
-            toast.success("Login successful");
-          },
-          onError: async (ctx: ErrorContext) => {
-            // Record failed attempt
-            loginRateLimiter.recordFailedAttempt(clientIp, values.email);
-            toast.error(ctx.error.message ?? "Something went wrong.");
-            console.log(ctx);
-          },
-        }
-      );
-    } catch (error) {
-      // Record failed attempt for unexpected errors
-      loginRateLimiter.recordFailedAttempt(clientIp, values.email);
-      toast.error("An unexpected error occurred");
-      console.error(error);
-    } finally {
-      setPendingCredentials(false);
-    }
+        onSuccess: async () => {
+          router.push(Paths.LandingPage);
+          toast.success("Login successful");
+        },
+        onError: async (ctx: ErrorContext) => {
+          toast.error(ctx.error.message ?? "Something went wrong.");
+          console.log(ctx);
+        },
+      }
+    );
+    setPendingCredentials(false);
   };
 
   return (

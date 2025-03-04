@@ -6,8 +6,9 @@ import env from "@/env";
 import bcrypt from "bcryptjs";
 import { authMiddleware } from "./auth-middleware";
 import { plugins } from "./plugins";
-import { secondaryStorage } from "./secondaryStorage";
+import { InMemoryStorage } from "./secondaryStorage";
 import { rateLimiterConfig } from "./limiter";
+const inMemoryStorage = new InMemoryStorage();
 
 export const auth = betterAuth({
   appName: "Pocket Finance",
@@ -91,8 +92,8 @@ export const auth = betterAuth({
       },
     },
   },
-  // rateLimit: rateLimiterConfig,
-  // secondaryStorage,
+  rateLimit: rateLimiterConfig,
+  secondaryStorage: inMemoryStorage,
   hooks: {
     before: authMiddleware,
   },
