@@ -6,7 +6,6 @@ import env from "@/env";
 import bcrypt from "bcryptjs";
 import { authMiddleware } from "./auth-middleware";
 import { plugins } from "./plugins";
-import { sendEmail } from "../email";
 import { secondaryStorage } from "./secondaryStorage";
 import { rateLimiterConfig } from "./limiter";
 
@@ -14,7 +13,7 @@ export const auth = betterAuth({
   appName: "Pocket Finance",
   baseURL: env.NEXT_PUBLIC_APP_URL,
   logger: {
-    disabled: env.NODE_ENV === "production",
+    disabled: false,
     level: "debug",
   },
   database: drizzleAdapter(db, {
@@ -59,7 +58,6 @@ export const auth = betterAuth({
     },
     requireEmailVerification: true,
     sendResetPassword: async ({ user, url }) => {
-      sendEmail(user.email, "password-reset", { resetLink: url });
       console.log({
         to: user.email,
         subject: "Reset your password",
@@ -72,7 +70,7 @@ export const auth = betterAuth({
     autoSignInAfterVerification: true,
     sendVerificationEmail: async ({ user, url }) => {
       const verificationUrl = url;
-      sendEmail(user.email, "verification", { verificationUrl });
+
       console.log({
         to: user.email,
         subject: "Verify your email address",
@@ -85,7 +83,6 @@ export const auth = betterAuth({
     changeEmail: {
       enabled: true,
       sendChangeEmailVerification: async ({ newEmail, url }) => {
-        sendEmail(newEmail, "email-change", { verificationUrl: url });
         console.log({
           to: newEmail,
           subject: "Verify your email change",
