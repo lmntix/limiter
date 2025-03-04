@@ -91,8 +91,8 @@ export const auth = betterAuth({
       },
     },
   },
-  rateLimit: rateLimiterConfig,
-  secondaryStorage,
+  // rateLimit: rateLimiterConfig,
+  // secondaryStorage,
   hooks: {
     before: authMiddleware,
   },
