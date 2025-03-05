@@ -30,6 +30,7 @@ export const auth = betterAuth({
       invitations: schema.invitations,
       members: schema.orgMembers,
       teams: schema.teams,
+      rateLimits: schema.rateLimits,
     },
   }),
   advanced: {
@@ -92,8 +93,23 @@ export const auth = betterAuth({
       },
     },
   },
-  rateLimit: rateLimiterConfig,
-  secondaryStorage: inMemoryStorage,
+  rateLimit: {
+    enabled: true,
+    window: 60,
+    max: 100,
+    storage: "database",
+    modelName: "rateLimit",
+    customRules: {
+      "/sign-in/email": {
+        window: 10,
+        max: 4,
+      },
+      "/sign-up/email": {
+        window: 10,
+        max: 5,
+      },
+    },
+  },
   hooks: {
     before: authMiddleware,
   },

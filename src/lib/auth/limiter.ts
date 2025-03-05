@@ -4,7 +4,8 @@ export const rateLimiterConfig: NonNullable<BetterAuthOptions["rateLimit"]> = {
   enabled: true,
   window: 60, // time window in seconds
   max: 100, // max requests in the window
-  storage: "secondary-storage", // Use secondary storage for rate limiting
+  storage: "database",
+  modelName: "rateLimit", // Use secondary storage for rate limiting
   customRules: {
     "/sign-in/email": {
       window: 10,

@@ -1,6 +1,8 @@
 import { relations, sql } from "drizzle-orm";
 import {
+  bigint,
   boolean,
+  integer,
   pgEnum,
   pgSchema,
   text,
@@ -124,6 +126,13 @@ export const invitations = authSchema.table("invitations", {
   inviterId: uuid("inviter_id")
     .notNull()
     .references(() => users.id),
+});
+
+export const rateLimits = authSchema.table("rate_limits", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  key: text("key"),
+  count: integer("count"),
+  lastRequest: bigint("last_request", { mode: "number" }),
 });
 
 export type Organization = typeof organizations.$inferSelect;
